@@ -14,7 +14,7 @@ import (
 // Check if the link is from japscan.to
 func isLinkValid(str string) bool {
 	u, err := url.Parse(str)
-	return err == nil && u.Scheme != "" && u.Host != "" && u.Hostname() == "www.scan-op.com"
+	return err == nil && u.Scheme != "" && u.Host != "" && (u.Hostname() == "www.scan-op.com" || u.Hostname() == "scan-op.com")
 }
 
 // Remove invalid links
