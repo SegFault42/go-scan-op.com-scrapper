@@ -2,12 +2,13 @@ package main
 
 import (
 	"fmt"
+	"go-japscan-scrapper/contentHtml"
 	"net/url"
 	"os"
-
-	"go-japscan-scrapper/contentHtml"
+	"strings"
 
 	"github.com/akamensky/argparse"
+	"github.com/sirupsen/logrus"
 )
 
 // Check if link is good formatted
@@ -41,7 +42,43 @@ func parseFlag() ([]string, error) {
 	return *s, err
 }
 
+func downloadManga(url string, path string) {
+	// get content html
+	htmlPage := contentHtml.GetHtmlContent(url)
+	// get all images in []string
+	imageUrl := contentHtml.GetLinks(htmlPage)
+
+	for _, elem := range imageUrl {
+		// get image number
+		split := strings.Split(elem, "/")
+		imageName := path + "/" + split[(len(split)-1)]
+		strings.TrimSpace(imageName)
+
+		// Download in folder
+		err := contentHtml.DownloadFile(strings.TrimSpace(elem), imageName)
+		if err != nil {
+			logrus.Error("download : ", err)
+		} else {
+			logrus.Info(imageName, " download success !")
+		}
+	}
+}
+
+func createFolders(link string) string {
+
+	split := strings.Split(link, "/")
+	path := split[4] + "/" + split[5]
+	os.MkdirAll(path, os.ModePerm)
+
+	return path
+}
+
 func main() {
+	Formatter := new(logrus.TextFormatter)
+	Formatter.TimestampFormat = "02-01-2006 15:04:05"
+	Formatter.FullTimestamp = true
+	logrus.SetFormatter(Formatter)
+
 	// get all links from arg
 	links, err := parseFlag()
 	if err != nil {
@@ -56,8 +93,13 @@ func main() {
 		return
 	}
 
+	// iter on each link given in arg
 	for _, elem := range links {
-		contentHtml.GetHtmlContent(elem)
-	}
+		path := createFolders(elem)
+		downloadManga(elem, path)
 
+		fmt.Println("")
+		logrus.Info(elem, "Success")
+		fmt.Println("")
+	}
 }

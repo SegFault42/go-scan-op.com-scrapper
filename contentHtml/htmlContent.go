@@ -1,58 +1,59 @@
 package contentHtml
 
 import (
-	"fmt"
+	"io"
+	"net/http"
+	"os"
 
 	"github.com/anaskhan96/soup"
 )
 
-func GetHtmlContent(link string) {
+func DownloadFile(url string, filePath string) error {
 
-	// HTTP get request
-	//resp, err := http.Get(link)
-	//if err != nil {
-	//panic(err)
-	//}
-	//defer resp.Body.Close()
+	// Get the data
+	resp, err := http.Get(url)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
 
-	//// Convert response as string
-	//dataInBytes, err := ioutil.ReadAll(resp.Body)
-	//if err != nil {
-	//panic(err)
-	//}
-	//pageContent := string(dataInBytes)
+	// Create the file
+	out, err := os.Create(filePath)
+	if err != nil {
+		return err
+	}
+	defer out.Close()
 
-	//titleStartIndex := strings.Index(pageContent, `<div id="all" style=" display: none; ">`)
-	//if titleStartIndex == -1 {
-	//fmt.Println("No title element found")
-	//os.Exit(0)
-	//}
+	// Write the body to file
+	_, err = io.Copy(out, resp.Body)
 
-	//fmt.Printf("%v\n", titleStartIndex)
-	//titleStartIndex += 39
+	return err
+}
 
-	//titleEndIndex := strings.Index(pageContent, `<div id="ppp" style="">`)
-	//if titleEndIndex == -1 {
-	//fmt.Println("No closing tag for title found.")
-	//os.Exit(0)
-	//}
-	//fmt.Printf("%v\n", titleEndIndex)
+func GetLinks(html string) []string {
+	// Takes the HTML string as an argument, returns a pointer to the DOM constructed
+	doc := soup.HTMLParse(html)
 
-	//pageTitle := []byte(pageContent[titleStartIndex:titleEndIndex])
+	// Find all images
+	links := doc.Find("div", "id", "all").FindAll("img")
 
-	//// Print out the result
-	//fmt.Printf("Page title: %s\n", pageTitle)
+	var s []string
+
+	// store all links in []string
+	for _, link := range links {
+		s = append(s, link.Attrs()["data-src"])
+	}
+
+	return s
+}
+
+func GetHtmlContent(link string) string {
+
+	// Get request
 	resp, err := soup.Get(link)
 	if err != nil {
 		panic(err)
 	}
 
-	doc := soup.HTMLParse(resp)
-
-	fmt.Println(doc.Text())
-	// <div id="all" style=" display: none; ">
-	links := doc.Find("div", "id", "all").FindAll("img")
-	for _, link := range links {
-		fmt.Println(link.Attrs()["data-src"])
-	}
+	return resp
 }
