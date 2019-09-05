@@ -24,6 +24,7 @@ func removeInvalidLinks(links []string) []string {
 		// append if link is valid
 		if isLinkValid(elem) == false {
 			links = append(links[:i], links[i+1:]...)
+			logrus.Warn(elem, " is invalid. Skipping !")
 		}
 	}
 
@@ -42,26 +43,31 @@ func parseFlag() ([]string, error) {
 	return *s, err
 }
 
-func downloadManga(url string, path string) {
+func downloadManga(url string, path string) bool {
 	// get content html
 	htmlPage := contentHtml.GetHtmlContent(url)
 	// get all images in []string
 	imageUrl := contentHtml.GetLinks(htmlPage)
+	if imageUrl == nil {
+		return false
+	}
 
 	for _, elem := range imageUrl {
 		// get image number
 		split := strings.Split(elem, "/")
 		imageName := path + "/" + split[(len(split)-1)]
-		strings.TrimSpace(imageName)
+		imageName = strings.TrimSpace(imageName)
 
 		// Download in folder
 		err := contentHtml.DownloadFile(strings.TrimSpace(elem), imageName)
 		if err != nil {
-			logrus.Error("download : ", err)
+			logrus.Errorln(err)
 		} else {
-			logrus.Info(imageName, " download success !")
+			logrus.Info("\033[1;1;33m", imageName, " \033[1;1;32mDownload success !\033[0m")
 		}
 	}
+
+	return true
 }
 
 func createFolders(link string) string {
@@ -74,6 +80,7 @@ func createFolders(link string) string {
 }
 
 func main() {
+	// Setup logrus
 	Formatter := new(logrus.TextFormatter)
 	Formatter.TimestampFormat = "02-01-2006 15:04:05"
 	Formatter.FullTimestamp = true
@@ -89,17 +96,20 @@ func main() {
 	links = removeInvalidLinks(links)
 
 	if len(links) == 0 {
-		fmt.Println("No valid links founds")
+		logrus.Errorln("\033[1;1;31mNo valid links found\033[0m")
 		return
 	}
 
 	// iter on each link given in arg
 	for _, elem := range links {
-		path := createFolders(elem)
-		downloadManga(elem, path)
+		logrus.Info("\033[1;1;33mDownloading :\033[0m", "\n")
 
-		fmt.Println("")
-		logrus.Info(elem, "Success")
-		fmt.Println("")
+		path := createFolders(elem)
+
+		if downloadManga(elem, path) == true {
+			fmt.Println("")
+			logrus.Info("\033[1;1;33m", elem, "\033[1;1;32m Finish !\033[0m")
+			fmt.Println("")
+		}
 	}
 }

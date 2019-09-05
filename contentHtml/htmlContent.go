@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/anaskhan96/soup"
+	"github.com/sirupsen/logrus"
 )
 
 func DownloadFile(url string, filePath string) error {
@@ -35,10 +36,14 @@ func GetLinks(html string) []string {
 	doc := soup.HTMLParse(html)
 
 	// Find all images
-	links := doc.Find("div", "id", "all").FindAll("img")
+	parse := doc.Find("div", "id", "all")
+	if parse.Error != nil {
+		logrus.Error("Unable to parse link")
+		return nil
+	}
+	links := parse.FindAll("img")
 
 	var s []string
-
 	// store all links in []string
 	for _, link := range links {
 		s = append(s, link.Attrs()["data-src"])
